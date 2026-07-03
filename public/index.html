@@ -14,6 +14,20 @@
       <div id="dashboard-summary" class="dashboard-summary"></div>
       <div id="alert-banner" class="alert-banner" hidden></div>
       <div id="dashboard" class="progress-grid"></div>
+
+      <section class="history-section">
+        <div class="history-header">
+          <div>
+            <h2>Last 7 days</h2>
+            <p class="subtitle">See weekly calorie trends and track consistency.</p>
+          </div>
+          <div id="history-stats" class="history-stats"></div>
+        </div>
+        <div class="history-chart-card">
+          <canvas id="calorie-chart" height="180"></canvas>
+        </div>
+      </section>
+
       <div id="toast-container" class="toast-container"></div>
     </section>
 
@@ -46,6 +60,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

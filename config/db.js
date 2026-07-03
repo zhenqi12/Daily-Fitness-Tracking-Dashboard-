@@ -10,6 +10,10 @@ if (!fs.existsSync(dataDir)) {
 
 const db = new sqlite3.Database(dbFile);
 
+function formatDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
@@ -64,7 +68,8 @@ async function initDb() {
     consumed_protein_g INTEGER NOT NULL DEFAULT 0,
     consumed_carbs_g INTEGER NOT NULL DEFAULT 0,
     consumed_fats_g INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    UNIQUE(user_id, date)
   )`);
 
   await run(
@@ -80,6 +85,25 @@ async function initDb() {
             (2, 2, ?, 900, 70, 120, 35)`,
     [today, today]
   );
+
+  const sampleHistory = [
+    { offset: -6, calories: 1900, protein: 140, carbs: 220, fats: 60 },
+    { offset: -5, calories: 2050, protein: 145, carbs: 230, fats: 65 },
+    { offset: -4, calories: 2250, protein: 155, carbs: 240, fats: 75 },
+    { offset: -3, calories: 2100, protein: 150, carbs: 235, fats: 70 },
+    { offset: -2, calories: 2000, protein: 135, carbs: 215, fats: 55 },
+    { offset: -1, calories: 1800, protein: 130, carbs: 205, fats: 50 },
+  ];
+
+  for (const entry of sampleHistory) {
+    const date = new Date();
+    date.setDate(date.getDate() + entry.offset);
+    await run(
+      `INSERT OR IGNORE INTO Daily_Logs (user_id, date, consumed_calories, consumed_protein_g, consumed_carbs_g, consumed_fats_g)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [1, formatDate(date), entry.calories, entry.protein, entry.carbs, entry.fats]
+    );
+  }
 }
 
 module.exports = {

@@ -157,4 +157,21 @@ describe('/api/orders/complete', () => {
     expect(finalResponse.body.carbs.consumed).toBe(0);
     expect(finalResponse.body.fats.consumed).toBe(0);
   });
+
+  test('returns 7-day history with zeroed days when missing', async () => {
+    const historyResponse = await request(app)
+      .get('/api/daily-log/history')
+      .query({ user_id: 2, days: 7 });
+
+    expect(historyResponse.status).toBe(200);
+    expect(Array.isArray(historyResponse.body)).toBe(true);
+    expect(historyResponse.body).toHaveLength(7);
+
+    const today = new Date().toISOString().slice(0, 10);
+    expect(historyResponse.body[6].date).toBe(today);
+    expect(historyResponse.body[6].consumed_calories).toBeGreaterThanOrEqual(0);
+
+    const zeroDays = historyResponse.body.slice(0, 6).filter((entry) => entry.consumed_calories === 0);
+    expect(zeroDays.length).toBeGreaterThanOrEqual(5);
+  });
 });

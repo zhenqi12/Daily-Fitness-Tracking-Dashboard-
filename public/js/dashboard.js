@@ -3,8 +3,11 @@ const toastContainer = document.getElementById('toast-container');
 const orderForm = document.getElementById('order-form');
 const alertBanner = document.getElementById('alert-banner');
 const dashboardSummary = document.getElementById('dashboard-summary');
+const historyStats = document.getElementById('history-stats');
+const calorieChartCanvas = document.getElementById('calorie-chart');
 const submitButton = orderForm.querySelector('button[type="submit"]');
 let isSubmittingOrder = false;
+let calorieChart = null;
 
 const ICONS = {
   calories: '🔥',
@@ -152,6 +155,7 @@ async function submitOrder(event) {
   const result = await response.json();
   renderDashboard(result.totals);
   renderAlertBanner(result.totals, result.new_alerts);
+  await fetchHistory(payload.user_id, 7);
 
   if (result.new_alerts && result.new_alerts.length > 0) {
     result.new_alerts.forEach(showToast);
@@ -186,7 +190,138 @@ async function resetTodayLog() {
   await response.json();
   const today = new Date().toISOString().slice(0, 10);
   await fetchDashboard(payload.user_id, today);
+  await fetchHistory(payload.user_id, 7);
   showToast({ tier: 'green', message: 'Today\'s log has been reset.' });
+}
+
+function summarizeHistory(history) {
+  const counts = {
+    above: 0,
+    onTarget: 0,
+    below: 0,
+  };
+
+  history.forEach((entry) => {
+    if (entry.consumed_calories === entry.target_calories) {
+      counts.onTarget += 1;
+    } else if (entry.consumed_calories > entry.target_calories) {
+      counts.above += 1;
+    } else {
+      counts.below += 1;
+    }
+  });
+
+  return counts;
+}
+
+function renderHistoryStats(history) {
+  if (!history || history.length === 0) {
+    historyStats.innerHTML = '<div class="history-stat"><h3>No history</h3><p>Data not available.</p></div>';
+    return;
+  }
+
+  const summary = summarizeHistory(history);
+  const total = history.length;
+  const average = Math.round(history.reduce((sum, item) => sum + item.consumed_calories, 0) / total);
+
+  historyStats.innerHTML = [
+    { label: 'Above target', value: `${summary.above}` },
+    { label: 'On target', value: `${summary.onTarget}` },
+    { label: 'Below target', value: `${summary.below}` },
+  ].map((stat) => `
+    <div class="history-stat">
+      <h3>${stat.label}</h3>
+      <p>${stat.value}</p>
+    </div>
+  `).join('');
+}
+
+function renderCalorieChart(history) {
+  const labels = history.map((entry) => entry.date.slice(5));
+  const calories = history.map((entry) => entry.consumed_calories);
+  const targets = history.map((entry) => entry.target_calories);
+
+  const barColors = history.map((entry) => (entry.consumed_calories > entry.target_calories ? '#f87171' : '#3b82f6'));
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Calories consumed',
+        data: calories,
+        backgroundColor: barColors,
+        borderRadius: 8,
+        barPercentage: 0.65,
+      },
+      {
+        type: 'line',
+        label: 'Daily target',
+        data: targets,
+        borderColor: '#2563eb',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.1,
+      },
+    ],
+  };
+
+  const config = {
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.y} kcal`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#475569' },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#e2e8f0' },
+          ticks: { color: '#475569' },
+        },
+      },
+    },
+  };
+
+  if (calorieChart) {
+    calorieChart.destroy();
+  }
+
+  calorieChart = new Chart(calorieChartCanvas, config);
+}
+
+async function fetchHistory(userId, days) {
+  const params = new URLSearchParams({ user_id: userId, days });
+  const response = await fetch(`/api/daily-log/history?${params.toString()}`);
+  if (!response.ok) {
+    console.error('Failed to load history', await response.text());
+    return;
+  }
+
+  const history = await response.json();
+  renderHistoryStats(history);
+  renderCalorieChart(history);
+}
+
+async function refreshUserData(userId, date) {
+  await Promise.all([
+    fetchDashboard(userId, date),
+    fetchHistory(userId, 7),
+  ]);
 }
 
 orderForm.addEventListener('submit', submitOrder);
@@ -194,7 +329,7 @@ const resetButton = document.getElementById('reset-button');
 resetButton.addEventListener('click', resetTodayLog);
 
 const today = new Date().toISOString().slice(0, 10);
-fetchDashboard(1, today);
+refreshUserData(1, today);
 
 window.__NutriTrack = {
   renderAlertBanner,

@@ -11,12 +11,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-initDb().catch((error) => {
-  console.error('Failed to initialize database:', error);
-  process.exit(1);
-});
-
 if (require.main === module) {
+  initDb().catch((error) => {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  });
+
   const port = process.env.PORT || 3000;
   app.listen(port, () => {
     console.log(`NutriTrack dashboard running on http://localhost:${port}`);

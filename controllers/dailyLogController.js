@@ -1,4 +1,4 @@
-const { get, run } = require('../config/db');
+const { get, run, all } = require('../config/db');
 
 const MACROS = [
   { key: 'calories', consumedColumn: 'consumed_calories', targetColumn: 'target_calories', requestKey: 'calories' },
@@ -63,6 +63,55 @@ async function getDailyLog(req, res) {
   };
 
   return res.json(response);
+}
+
+async function getDailyLogHistory(req, res) {
+  const userId = Number(req.query.user_id);
+  const days = Number(req.query.days) || 7;
+
+  if (!userId || days <= 0) {
+    return res.status(400).json({ error: 'user_id and positive days are required' });
+  }
+
+  const user = await get('SELECT * FROM Users WHERE user_id = ?', [userId]);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const today = new Date();
+  const dates = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - i);
+    dates.push(day.toISOString().slice(0, 10));
+  }
+
+  const rows = await all(
+    `SELECT * FROM Daily_Logs WHERE user_id = ? AND date IN (${dates.map(() => '?').join(',')}) ORDER BY date ASC`,
+    [userId, ...dates]
+  );
+
+  const rowMap = rows.reduce((map, row) => {
+    map[row.date] = row;
+    return map;
+  }, {});
+
+  const history = dates.map((date) => {
+    const row = rowMap[date];
+    return {
+      date,
+      consumed_calories: row ? row.consumed_calories : 0,
+      consumed_protein_g: row ? row.consumed_protein_g : 0,
+      consumed_carbs_g: row ? row.consumed_carbs_g : 0,
+      consumed_fats_g: row ? row.consumed_fats_g : 0,
+      target_calories: user.target_calories,
+      target_protein_g: user.target_protein_g,
+      target_carbs_g: user.target_carbs_g,
+      target_fats_g: user.target_fats_g,
+    };
+  });
+
+  return res.json(history);
 }
 
 async function completeOrder(req, res) {
@@ -189,6 +238,7 @@ async function resetDailyLog(req, res) {
 module.exports = {
   calculateMacroAlertStatus,
   getDailyLog,
+  getDailyLogHistory,
   completeOrder,
   resetDailyLog,
 };
