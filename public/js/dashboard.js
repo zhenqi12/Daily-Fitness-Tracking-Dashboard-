@@ -74,7 +74,15 @@ async function submitOrder(event) {
 
   const result = await response.json();
   renderDashboard(result.totals);
-  result.new_alerts.forEach(showToast);
+
+  if (result.new_alerts && result.new_alerts.length > 0) {
+    result.new_alerts.forEach(showToast);
+  } else {
+    showToast({
+      tier: 'green',
+      message: 'Order simulated successfully — dashboard updated.',
+    });
+  }
 }
 
 orderForm.addEventListener('submit', submitOrder);
