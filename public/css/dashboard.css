@@ -64,6 +64,62 @@ h2 {
 .macro-card h3 {
   margin: 0 0 8px;
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.macro-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 96px;
+}
+
+.status-badge.green { background: #16a34a; }
+.status-badge.yellow { background: #f59e0b; }
+.status-badge.red { background: #dc2626; }
+
+.dashboard-summary {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #eef2ff;
+  border: 1px solid #dbeafe;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.alert-banner {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.macro-remaining {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.macro-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
 }
 
 .macro-stats {
@@ -86,6 +142,10 @@ h2 {
   border-radius: inherit;
   transition: width 0.25s ease;
 }
+
+.progress-fill.green { background: var(--green); }
+.progress-fill.yellow { background: var(--yellow); }
+.progress-fill.red { background: var(--red); }
 
 .toast-container {
   position: fixed;
@@ -145,6 +205,20 @@ h2 {
 
 .order-form button:hover {
   background: #1d4ed8;
+}
+
+.reset-button {
+  padding: 14px 18px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: var(--text);
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.reset-button:hover {
+  background: #e2e8f0;
 }
 
 @media (max-width: 720px) {

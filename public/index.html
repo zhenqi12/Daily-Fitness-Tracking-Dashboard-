@@ -11,6 +11,8 @@
     <section class="dashboard-card">
       <h1>NutriTrack Daily Nutrition Dashboard</h1>
       <p class="subtitle">Track your macros against daily targets and simulate an order completion.</p>
+      <div id="dashboard-summary" class="dashboard-summary"></div>
+      <div id="alert-banner" class="alert-banner" hidden></div>
       <div id="dashboard" class="progress-grid"></div>
       <div id="toast-container" class="toast-container"></div>
     </section>
@@ -39,6 +41,7 @@
           <input type="number" id="fats_g" value="12" min="0" required />
         </label>
         <button type="submit">Simulate order</button>
+        <button type="button" id="reset-button" class="reset-button">Reset today's log</button>
       </form>
     </section>
   </main>
