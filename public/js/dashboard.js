@@ -39,9 +39,11 @@ function renderDashboard(data) {
     const percent = Math.min(100, macroData.percent);
     const fillColor = tier === 'red' ? '#ef4444' : tier === 'yellow' ? '#f59e0b' : '#22c55e';
     const delta = macroData.target - macroData.consumed;
-    const remainder = delta >= 0
+    const remainder = delta > 0
       ? `${delta}${macro.unit} left`
-      : `+${-delta}${macro.unit} over`;
+      : delta < 0
+        ? `+${-delta}${macro.unit} over`
+        : `At target`;
 
     return `
       <article class="macro-card">
@@ -98,7 +100,11 @@ function renderAlertBanner(data, newAlerts) {
     if (!value) return;
     if (value.tier === 'red') {
       const over = value.consumed - value.target;
-      alertMessages.push(`${macro.label} exceeded by ${over}${macro.unit} after your last order.`);
+      if (over > 0) {
+        alertMessages.push(`${macro.label} exceeded by ${over}${macro.unit} after your last order.`);
+      } else {
+        alertMessages.push(`${macro.label} is exactly at your daily target after your last order.`);
+      }
     } else if (value.tier === 'yellow') {
       alertMessages.push(`${macro.label} is almost there at ${value.percent}% of target.`);
     }
@@ -189,3 +195,9 @@ resetButton.addEventListener('click', resetTodayLog);
 
 const today = new Date().toISOString().slice(0, 10);
 fetchDashboard(1, today);
+
+window.__NutriTrack = {
+  renderAlertBanner,
+  renderDashboard,
+  clearAlertBanner,
+};

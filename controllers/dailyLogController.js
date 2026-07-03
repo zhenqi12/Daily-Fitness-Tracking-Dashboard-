@@ -130,14 +130,22 @@ async function completeOrder(req, res) {
     const currentTierRank = getTierRank(response[macroKey].tier);
 
     if (currentTierRank > previousTierRank) {
+      const over = response[macroKey].consumed - user[`target_${macroKey}${macroKey === 'calories' ? '' : '_g'}`];
+      let message;
+
+      if (response[macroKey].tier === 'red') {
+        message = over > 0
+          ? `⚠️ ${macroKey.charAt(0).toUpperCase() + macroKey.slice(1)} exceeded by ${over}${macroKey === 'calories' ? ' kcal' : 'g'} after your last order.`
+          : `⚠️ ${macroKey.charAt(0).toUpperCase() + macroKey.slice(1)} is exactly at your daily target after your last order.`;
+      } else {
+        message = `You're at ${response[macroKey].percent}% of your daily ${macroKey} target`;
+      }
+
       alerts.push({
         macro: macroKey,
         percent: response[macroKey].percent,
         tier: response[macroKey].tier,
-        message:
-          response[macroKey].tier === 'red'
-            ? `⚠️ ${macroKey.charAt(0).toUpperCase() + macroKey.slice(1)}: ${response[macroKey].percent}% of your daily target`
-            : `You're at ${response[macroKey].percent}% of your daily ${macroKey} target`,
+        message,
       });
     }
 
@@ -147,8 +155,40 @@ async function completeOrder(req, res) {
   return res.json({ totals: response, new_alerts: newAlerts });
 }
 
+async function resetDailyLog(req, res) {
+  const { user_id } = req.body;
+  const userId = Number(user_id);
+
+  if (!userId) {
+    return res.status(400).json({ error: 'user_id is required and must be a number' });
+  }
+
+  const user = await get('SELECT * FROM Users WHERE user_id = ?', [userId]);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const date = new Date().toISOString().slice(0, 10);
+  const existingLog = await get('SELECT * FROM Daily_Logs WHERE user_id = ? AND date = ?', [userId, date]);
+
+  if (existingLog) {
+    await run(
+      `UPDATE Daily_Logs SET consumed_calories = 0, consumed_protein_g = 0, consumed_carbs_g = 0, consumed_fats_g = 0 WHERE log_id = ?`,
+      [existingLog.log_id]
+    );
+  } else {
+    await run(
+      `INSERT INTO Daily_Logs (user_id, date, consumed_calories, consumed_protein_g, consumed_carbs_g, consumed_fats_g) VALUES (?, ?, 0, 0, 0, 0)`,
+      [userId, date]
+    );
+  }
+
+  return res.json({ message: 'Daily log reset for today' });
+}
+
 module.exports = {
   calculateMacroAlertStatus,
   getDailyLog,
   completeOrder,
+  resetDailyLog,
 };
